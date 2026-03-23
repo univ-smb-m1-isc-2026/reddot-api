@@ -3,9 +3,9 @@ spring:
     name: reddot-api
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/reddot
-    username: admin
-    password: secret
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/reddot}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -20,5 +20,5 @@ server:
   port: 8080
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  secret: ${JWT_SECRET}
   expiration: 86400000
