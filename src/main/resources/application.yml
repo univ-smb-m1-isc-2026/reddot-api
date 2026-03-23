@@ -22,3 +22,6 @@ server:
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
+
+cors:
+  allowed-origins: http://localhost:5173
