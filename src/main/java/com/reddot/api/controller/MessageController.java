@@ -24,8 +24,11 @@ public class MessageController {
     private final MessageService messageService;
 
     @GetMapping("/api/topics/{topicId}/messages")
-    public ResponseEntity<List<MessageResponse>> getMessages(@PathVariable Long topicId) {
-        return ResponseEntity.ok(messageService.getMessages(topicId));
+    public ResponseEntity<List<MessageResponse>> getMessages(
+            @PathVariable Long topicId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.ok(messageService.getMessages(topicId, currentUser));
     }
 
     @PostMapping("/api/topics/{topicId}/messages")

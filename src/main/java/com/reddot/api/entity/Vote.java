@@ -1,9 +1,21 @@
 package com.reddot.api.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "votes")
@@ -28,7 +40,7 @@ public class Vote {
     private Message message;
 
     @Column(nullable = false)
-    private short value; // +1 ou -1
+    private int value;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

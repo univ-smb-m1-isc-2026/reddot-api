@@ -28,6 +28,14 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class Report {
+    // Explicit getters for compatibility
+    public TargetType getTargetType() {
+        return targetType;
+    }
+
+    public Long getTargetId() {
+        return targetId;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -21,11 +21,15 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final TopicRepository topicRepository;
 
-    public List<MessageResponse> getMessages(Long topicId) {
+    private boolean isAdmin(User user) {
+        return user != null && user.getRole() == User.Role.ADMIN;
+    }
+
+    public List<MessageResponse> getMessages(Long topicId, User currentUser) {
         return messageRepository.findByTopicIdAndParentIsNull(topicId)
                 .stream()
-                .filter(m -> !m.isHidden())
-                .map(MessageResponse::new)
+                .filter(m -> !m.isHidden() || isAdmin(currentUser))
+                .map(m -> new MessageResponse(m, currentUser))
                 .toList();
     }
 
@@ -43,7 +47,7 @@ public class MessageService {
                 .topic(topic)
                 .build();
 
-        return new MessageResponse(messageRepository.save(message));
+        return new MessageResponse(messageRepository.save(message), author);
     }
 
     public MessageResponse replyToMessage(Long messageId, MessageRequest request, User author) {
@@ -61,6 +65,24 @@ public class MessageService {
                 .parent(parent)
                 .build();
 
-        return new MessageResponse(messageRepository.save(reply));
+        return new MessageResponse(messageRepository.save(reply), author);
+    }
+
+    public void moderateMessage(Long messageId, Boolean hidden, Boolean locked) {
+    Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new RuntimeException("Message not found"));
+    moderateRecursive(message, hidden, locked);
+}
+
+    private void moderateRecursive(Message message, Boolean hidden, Boolean locked) {
+        if (hidden != null) message.setHidden(hidden);
+        if (locked != null) message.setLocked(locked);
+        messageRepository.save(message);
+
+        if (message.getReplies() != null) {
+            for (Message reply : message.getReplies()) {
+                moderateRecursive(reply, hidden, locked);
+            }
+        }
     }
 }

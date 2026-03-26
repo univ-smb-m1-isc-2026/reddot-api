@@ -1,10 +1,26 @@
 package com.reddot.api.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "messages")
@@ -27,12 +43,16 @@ public class Message {
     @JoinColumn(name = "topic_id", nullable = false)
     private Topic topic;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Message parent;
 
     @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
     private List<Message> replies;
+
+    @OneToMany(mappedBy = "message", fetch = FetchType.LAZY)
+    private List<Vote> votes;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
@@ -41,9 +61,11 @@ public class Message {
     private LocalDateTime createdAt;
 
     @Column(name = "is_locked")
+    @Builder.Default
     private boolean locked = false;
 
     @Column(name = "is_hidden")
+    @Builder.Default
     private boolean hidden = false;
 
     @PrePersist
