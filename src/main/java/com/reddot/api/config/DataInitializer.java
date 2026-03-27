@@ -19,6 +19,9 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${admin.password:admin}")
+    private String adminPassword;
+
     @Override
     public void run(String... args) {
         if (repo.count() == 0) {
@@ -27,14 +30,13 @@ public class DataInitializer implements CommandLineRunner {
             repo.save(msg);
         }
 
-        if (userRepository.count() == 0) {
-            User admin = User.builder()
+        if (!userRepository.existsByUsername("admin")) {
+            userRepository.save(User.builder()
                     .username("admin")
                     .email("admin@reddot.com")
-                    .password(passwordEncoder.encode("admin123"))
+                    .password(passwordEncoder.encode(adminPassword))
                     .role(User.Role.ADMIN)
-                    .build();
-            userRepository.save(admin);
+                    .build());
         }
     }
 }
