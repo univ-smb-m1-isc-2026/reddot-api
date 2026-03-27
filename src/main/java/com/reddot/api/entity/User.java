@@ -57,7 +57,6 @@ public class User implements UserDetails {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @JsonIgnore
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 

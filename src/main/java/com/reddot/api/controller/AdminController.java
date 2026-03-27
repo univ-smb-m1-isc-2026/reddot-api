@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.reddot.api.dto.ReportResponse;
+import com.reddot.api.dto.TopicResponse;
 import com.reddot.api.entity.Message;
 import com.reddot.api.entity.Report;
-import com.reddot.api.entity.Topic;
 import com.reddot.api.entity.User;
 import com.reddot.api.repository.MessageRepository;
 import com.reddot.api.repository.ReportRepository;
@@ -25,6 +25,7 @@ import com.reddot.api.repository.TopicRepository;
 import com.reddot.api.repository.UserRepository;
 import com.reddot.api.service.MessageService;
 import com.reddot.api.service.ReportService;
+import com.reddot.api.service.TopicService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,6 +40,7 @@ public class AdminController {
     private final ReportService reportService;
     private final UserRepository userRepository;
     private final MessageService messageService;
+    private final TopicService topicService;
 
     @GetMapping("/reports")
     public ResponseEntity<List<ReportResponse>> getReports(
@@ -64,23 +66,6 @@ public class AdminController {
                 .toList();
 
         return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/topics/{id}")
-    public ResponseEntity<Map<String, Object>> updateTopic(
-            @PathVariable Long id,
-            @RequestBody Map<String, Boolean> body
-    ) {
-        Topic topic = topicRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Topic not found"));
-        if (body.containsKey("locked")) topic.setLocked(body.get("locked"));
-        if (body.containsKey("hidden")) topic.setHidden(body.get("hidden"));
-        topicRepository.save(topic);
-        return ResponseEntity.ok(Map.of(
-                "id", topic.getId(),
-                "locked", topic.isLocked(),
-                "hidden", topic.isHidden()
-        ));
     }
 
     @PatchMapping("/messages/{id}")
@@ -109,14 +94,32 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> searchUsers(
-            @RequestParam(defaultValue = "") String q
-    ) {
-        if (q.isEmpty()) {
-            return ResponseEntity.ok(userRepository.findAll());
+        public ResponseEntity<List<Map<String, Object>>> searchUsers(
+                @RequestParam(defaultValue = "") String q
+        ) {
+        List<User> users = q.isEmpty()
+                ? userRepository.findAll()
+                : userRepository.findByUsernameContainingIgnoreCase(q);
+
+        List<Map<String, Object>> response = users.stream().map(u -> {
+                if (u.getDeletedAt() != null) {
+                return Map.<String, Object>of(
+                        "id", u.getId(),
+                        "username", "[supprimé]",
+                        "role", u.getRole(),
+                        "deletedAt", u.getDeletedAt()
+                );
+                }
+                return Map.<String, Object>of(
+                        "id", u.getId(),
+                        "username", u.getUsername(),
+                        "role", u.getRole(),
+                        "deletedAt", ""
+                );
+        }).toList();
+
+        return ResponseEntity.ok(response);
         }
-        return ResponseEntity.ok(userRepository.findByUsernameContainingIgnoreCase(q));
-    }
 
     @DeleteMapping("/users/{username}")
     public ResponseEntity<Void> deleteUser(@PathVariable String username) {
@@ -126,4 +129,21 @@ public class AdminController {
         userRepository.save(user);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/topics/{id}")
+        public ResponseEntity<Map<String, Object>> updateTopic(
+                @PathVariable Long id,
+                @RequestBody Map<String, Boolean> body
+        ) {
+        TopicResponse topic = topicService.moderateTopic(
+                id,
+                body.containsKey("hidden") ? body.get("hidden") : null,
+                body.containsKey("locked") ? body.get("locked") : null
+        );
+        return ResponseEntity.ok(Map.of(
+                "id", topic.getId(),
+                "locked", topic.isLocked(),
+                "hidden", topic.isHidden()
+        ));
+   }
 }

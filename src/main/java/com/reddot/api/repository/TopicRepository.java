@@ -13,4 +13,5 @@ public interface TopicRepository extends JpaRepository<Topic, Long> {
     Page<Topic> findByHiddenFalse(Pageable pageable);
     Page<Topic> findByHiddenFalseAndTitleContainingIgnoreCase(String title, Pageable pageable);
     List<Topic> findByAuthor(User author);
+    Page<Topic> findByTitleContainingIgnoreCase(String title, Pageable pageable);
 }

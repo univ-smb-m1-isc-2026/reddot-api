@@ -31,9 +31,13 @@ public class UserController {
     }
 
     @GetMapping("/{username}")
-    public ResponseEntity<Map<String, Object>> getProfile(@PathVariable String username) {
+        public ResponseEntity<Map<String, Object>> getProfile(@PathVariable String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getDeletedAt() != null) {
+                return ResponseEntity.notFound().build();
+        }
 
         List<Map<String, Object>> topics = topicRepository.findByAuthor(user)
                 .stream()

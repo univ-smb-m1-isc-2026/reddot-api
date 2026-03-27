@@ -28,7 +28,7 @@ public class ReportResponse {
 
     public ReportResponse(Report report, Topic topic) {
         base(report);
-        this.targetContent = topic.getDescription();
+        this.targetContent = topic.getTitle() + (topic.getDescription() != null ? " — " + topic.getDescription() : "");
         this.targetAuthor = topic.getAuthor().getUsername();
         this.targetHidden = topic.isHidden();
         this.targetLocked = topic.isLocked();

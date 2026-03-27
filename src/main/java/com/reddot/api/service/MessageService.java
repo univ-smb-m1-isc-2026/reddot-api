@@ -1,9 +1,9 @@
 package com.reddot.api.service;
 
 import java.util.List;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import com.reddot.api.dto.MessageRequest;
 import com.reddot.api.dto.MessageResponse;
 import com.reddot.api.entity.Message;
@@ -11,12 +11,13 @@ import com.reddot.api.entity.Topic;
 import com.reddot.api.entity.User;
 import com.reddot.api.repository.MessageRepository;
 import com.reddot.api.repository.TopicRepository;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class MessageService {
+
+    private static final Logger log = LoggerFactory.getLogger(MessageService.class);
 
     private final MessageRepository messageRepository;
     private final TopicRepository topicRepository;
@@ -26,6 +27,8 @@ public class MessageService {
     }
 
     public List<MessageResponse> getMessages(Long topicId, User currentUser) {
+        log.debug("Fetching messages for topic {} (user: {})", topicId,
+                currentUser != null ? currentUser.getUsername() : "anonymous");
         return messageRepository.findByTopicIdAndParentIsNull(topicId)
                 .stream()
                 .filter(m -> !m.isHidden() || isAdmin(currentUser))
@@ -38,6 +41,7 @@ public class MessageService {
                 .orElseThrow(() -> new RuntimeException("Topic not found"));
 
         if (topic.isLocked()) {
+            log.warn("User {} tried to post on locked topic {}", author.getUsername(), topicId);
             throw new RuntimeException("Topic is locked");
         }
 
@@ -47,7 +51,9 @@ public class MessageService {
                 .topic(topic)
                 .build();
 
-        return new MessageResponse(messageRepository.save(message), author);
+        MessageResponse response = new MessageResponse(messageRepository.save(message), author);
+        log.info("Message created by {} on topic {}", author.getUsername(), topicId);
+        return response;
     }
 
     public MessageResponse replyToMessage(Long messageId, MessageRequest request, User author) {
@@ -55,6 +61,7 @@ public class MessageService {
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
         if (parent.isLocked()) {
+            log.warn("User {} tried to reply to locked message {}", author.getUsername(), messageId);
             throw new RuntimeException("Message is locked");
         }
 
@@ -65,20 +72,22 @@ public class MessageService {
                 .parent(parent)
                 .build();
 
-        return new MessageResponse(messageRepository.save(reply), author);
+        MessageResponse response = new MessageResponse(messageRepository.save(reply), author);
+        log.info("Reply created by {} on message {}", author.getUsername(), messageId);
+        return response;
     }
 
     public void moderateMessage(Long messageId, Boolean hidden, Boolean locked) {
-    Message message = messageRepository.findById(messageId)
-            .orElseThrow(() -> new RuntimeException("Message not found"));
-    moderateRecursive(message, hidden, locked);
-}
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        log.warn("Moderating message {} - hidden: {}, locked: {}", messageId, hidden, locked);
+        moderateRecursive(message, hidden, locked);
+    }
 
     private void moderateRecursive(Message message, Boolean hidden, Boolean locked) {
         if (hidden != null) message.setHidden(hidden);
         if (locked != null) message.setLocked(locked);
         messageRepository.save(message);
-
         if (message.getReplies() != null) {
             for (Message reply : message.getReplies()) {
                 moderateRecursive(reply, hidden, locked);
