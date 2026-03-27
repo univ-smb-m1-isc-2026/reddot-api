@@ -1,14 +1,15 @@
 package com.reddot.api.config;
 
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
 import com.reddot.api.entity.HelloMessage;
 import com.reddot.api.entity.User;
 import com.reddot.api.repository.HelloMessageRepository;
 import com.reddot.api.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -25,7 +26,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         if (repo.count() == 0) {
             HelloMessage msg = new HelloMessage();
-            msg.setMessage("Test from Reddot!");
+            msg.setMessage("Hello from Reddot! 🔴");
             repo.save(msg);
         }
 
