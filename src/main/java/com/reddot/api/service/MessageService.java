@@ -4,13 +4,17 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.reddot.api.dto.MessageRequest;
 import com.reddot.api.dto.MessageResponse;
 import com.reddot.api.entity.Message;
+import com.reddot.api.entity.Report;
 import com.reddot.api.entity.Topic;
 import com.reddot.api.entity.User;
 import com.reddot.api.repository.MessageRepository;
+import com.reddot.api.repository.ReportRepository;
 import com.reddot.api.repository.TopicRepository;
+import com.reddot.api.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -21,6 +25,8 @@ public class MessageService {
 
     private final MessageRepository messageRepository;
     private final TopicRepository topicRepository;
+    private final VoteRepository voteRepository;
+    private final ReportRepository reportRepository;
 
     private boolean isAdmin(User user) {
         return user != null && user.getRole() == User.Role.ADMIN;
@@ -75,6 +81,34 @@ public class MessageService {
         MessageResponse response = new MessageResponse(messageRepository.save(reply), author);
         log.info("Reply created by {} on message {}", author.getUsername(), messageId);
         return response;
+    }
+
+    @Transactional
+    public void deleteMessage(Long messageId, User currentUser) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+
+        if (!isAdmin(currentUser) && !message.getAuthor().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Forbidden");
+        }
+
+        log.warn("Message {} deleted by {}", messageId, currentUser.getUsername());
+        deleteMessageRecursive(message);
+    }
+
+    public void deleteMessageTree(Message message) {
+        deleteMessageRecursive(message);
+    }
+
+    private void deleteMessageRecursive(Message message) {
+        if (message.getReplies() != null) {
+            for (Message reply : message.getReplies()) {
+                deleteMessageRecursive(reply);
+            }
+        }
+        voteRepository.deleteByMessage(message);
+        reportRepository.deleteByTargetTypeAndTargetId(Report.TargetType.MESSAGE, message.getId());
+        messageRepository.delete(message);
     }
 
     public void moderateMessage(Long messageId, Boolean hidden, Boolean locked) {

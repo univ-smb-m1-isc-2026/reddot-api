@@ -5,10 +5,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.reddot.api.dto.TopicRequest;
 import com.reddot.api.dto.TopicResponse;
+import com.reddot.api.entity.Report;
 import com.reddot.api.entity.Topic;
 import com.reddot.api.entity.User;
+import com.reddot.api.repository.MessageRepository;
+import com.reddot.api.repository.ReportRepository;
 import com.reddot.api.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -18,6 +22,9 @@ public class TopicService {
 
     private static final Logger log = LoggerFactory.getLogger(TopicService.class);
     private final TopicRepository topicRepository;
+    private final MessageRepository messageRepository;
+    private final ReportRepository reportRepository;
+    private final MessageService messageService;
 
     private boolean isAdmin(User user) {
         return user != null && user.getRole() == User.Role.ADMIN;
@@ -67,6 +74,22 @@ public class TopicService {
         }
         return topicRepository.findByHiddenFalseAndTitleContainingIgnoreCase(query, pageable)
                 .map(TopicResponse::new);
+    }
+
+    @Transactional
+    public void deleteTopic(Long id, User currentUser) {
+        Topic topic = topicRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Topic not found"));
+
+        if (!isAdmin(currentUser) && !topic.getAuthor().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Forbidden");
+        }
+
+        log.warn("Topic {} deleted by {}", id, currentUser.getUsername());
+        messageRepository.findByTopicIdAndParentIsNull(id)
+                .forEach(messageService::deleteMessageTree);
+        reportRepository.deleteByTargetTypeAndTargetId(Report.TargetType.TOPIC, id);
+        topicRepository.delete(topic);
     }
 
     public TopicResponse moderateTopic(Long id, Boolean hidden, Boolean locked) {

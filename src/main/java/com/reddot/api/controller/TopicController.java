@@ -65,6 +65,15 @@ public class TopicController {
         return ResponseEntity.ok(topicService.createTopic(request, currentUser));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTopic(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        topicService.deleteTopic(id, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/report")
     public ResponseEntity<Void> reportTopic(
             @PathVariable Long id,
